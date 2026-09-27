@@ -1,3 +1,3 @@
-aws_region       = "ap-south-1"
+aws_region       = "us-east-1"
 application_name = "streamflix"
-environment_name = "streamflix-env"
+environment_name = "streamflix-dev"

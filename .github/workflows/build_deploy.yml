@@ -47,3 +47,105 @@ jobs:
               with:
                 name: streamflix-deployment
                 path: eb-deployment
+
+    terraform:
+        name: Terraform Infrastructure Deployment
+        runs-on: ubuntu-latest
+        needs: build
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@v6
+              with:
+                  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+                  aws-region: us-east-1
+                  role-session-name: github-connection
+
+            - name: Verify AWS Credentials  
+              run: |
+                aws sts get-caller-identity
+                echo "AWS credentials configured successfully."
+                echo "AWS credentials verification completed successfully."
+                echo "AWS credentials setup and verification completed successfully."
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+           
+            - name: Initialize Terraform
+              working-directory: terraform
+              run: |
+                terraform init
+                echo "Terraform initialized successfully."
+
+            - name: Plan Terraform Changes
+              working-directory: terraform
+              run: |
+                terraform plan
+                echo "Terraform plan completed successfully."
+
+            - name: Apply Terraform Changes
+              working-directory: terraform
+              run: |
+                terraform apply -auto-approve
+                echo "Terraform apply completed successfully."
+
+    Deploy:
+        name: Deploy Application to Elastic Beanstalk
+        runs-on: ubuntu-latest
+        needs: terraform
+        steps:
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@v6
+              with:
+                  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+                  aws-region: us-east-1
+                  role-session-name: github-connection
+
+            - name: Download deployment artifacts
+              uses: actions/download-artifact@v3
+              with:
+                name: streamflix-deployment
+                path: deployment
+            - name: Verify deployment artifacts
+              run: |
+                echo "Verifying deployment artifacts."
+                ls -la deployment
+                echo "Verify Proc File."
+                cat deployment/Procfile
+                test -f deployment/Procfile         
+                echo "Proc File existence verified successfully."
+                test -f deployment/*.jar
+                echo "JAR file existence verified successfully."
+
+            - name: Create Deployment ZIP file
+              run: |
+                cd deployment
+                echo "Creating deployment ZIP file."
+                zip -r ../streamflix-deployment.zip .
+                cd ..
+                echo "Deployment ZIP file created successfully."
+                unzip -l streamflix-deployment.zip
+
+            - name : Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v6
+              with:
+                  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+                  aws-region: us-east-1
+                  role-session-name: github-connection
+
+            - name: Verify AWS Credentials  
+              run: |
+                aws sts get-caller-identity 
+                echo "AWS credentials verified successfully."
+
+            - name: Deploy application
+              uses: aws-actions/elastic-beanstalk-deploy@v1
+              with:
+                aws-region: us-east-1
+                application-name: streamflix
+                environment-name: streamflix-dev
+                version-label: streamflix-${{ github.run_number }}
+                deployment-package-path: streamflix-deployment.zip
+        
+
