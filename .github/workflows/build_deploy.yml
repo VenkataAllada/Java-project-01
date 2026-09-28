@@ -140,7 +140,7 @@ jobs:
                 echo "AWS credentials verified successfully."
 
             - name: Deploy application
-              uses: aws-actions/elastic-beanstalk-deploy@v1
+              uses: aws-actions/elastic-beanstalk-deploy@v4
               with:
                 aws-region: us-east-1
                 application-name: streamflix
