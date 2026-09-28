@@ -3,7 +3,18 @@
 # is purely for human organization - Terraform doesn't require it.
 
 terraform {
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.10.0"
+
+  # Remote state so local runs and GitHub Actions runs share one state file.
+  # Without this, every CI run starts with empty state and tries to recreate
+  # resources that already exist.
+  backend "s3" {
+    bucket       = "streamflix-tfstate-730335391385"
+    key          = "streamflix/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
+  }
 
   required_providers {
     aws = {
